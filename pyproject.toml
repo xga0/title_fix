@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "title_fix"
+version = "0.1.0"
+authors = [
+  { name="Sean Gao", email="seangao@gmail.com" },
+]
+description = "A Python package for intelligent title case conversion and text formatting"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "regex>=2023.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/xga0/title_fix"
+"Bug Tracker" = "https://github.com/xga0/title_fix/issues"
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+] 
