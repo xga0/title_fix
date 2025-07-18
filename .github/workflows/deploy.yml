@@ -1,0 +1,156 @@
+name: Deploy to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest regex
+        pip install -e .
+    
+    - name: Run comprehensive tests
+      run: |
+        # Run all tests with verbose output
+        python -m pytest tests/ -v --tb=short
+        
+        # Test import and basic functionality
+        python -c "
+        from title_fix import title_fix, get_supported_styles, get_supported_case_types, __version__
+        print(f'✓ Version: {__version__}')
+        print(f'✓ Styles: {get_supported_styles()}')
+        print(f'✓ Case types: {get_supported_case_types()}')
+        
+        # Test all citation styles
+        for style in get_supported_styles():
+            result = title_fix('test title', style=style)
+            assert result['text'], f'Failed for style: {style}'
+            print(f'✓ Style {style}: {result[\"text\"]}')
+        
+        # Test all case types
+        for case_type in get_supported_case_types():
+            result = title_fix('test title', case_type=case_type)
+            assert result['text'], f'Failed for case_type: {case_type}'
+            print(f'✓ Case type {case_type}: {result[\"text\"]}')
+        
+        # Test edge cases
+        test_cases = [
+            '',  # empty string
+            'a',  # single character
+            'nasa, fbi, and cia',  # acronyms
+            'world war ii',  # roman numerals
+            'well-known fact',  # hyphenated
+            'title: subtitle',  # colon
+            'café résumé',  # unicode
+            'hello 🌍 world',  # emoji
+        ]
+        
+        for test_case in test_cases:
+            result = title_fix(test_case)
+            print(f'✓ Edge case \"{test_case}\": \"{result[\"text\"]}\"')
+        
+        print('✓ All functionality tests passed!')
+        "
+    
+    - name: Test package installation
+      run: |
+        # Test clean installation
+        pip uninstall title_fix -y
+        pip install .
+        python -c "
+        import title_fix
+        result = title_fix.title_fix('installation test')
+        assert result['text'] == 'Installation Test'
+        print('✓ Package installation test passed!')
+        "
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Verify version consistency
+      run: |
+        # Check that pyproject.toml version matches the git tag
+        PYPROJECT_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        GIT_TAG=${GITHUB_REF#refs/tags/}
+        echo "PyProject version: $PYPROJECT_VERSION"
+        echo "Git tag: $GIT_TAG"
+        
+        if [ "$PYPROJECT_VERSION" != "$GIT_TAG" ]; then
+          echo "❌ Version mismatch: pyproject.toml has $PYPROJECT_VERSION but git tag is $GIT_TAG"
+          exit 1
+        fi
+        echo "✓ Version consistency check passed"
+    
+    - name: Build package
+      run: |
+        python -m build
+        echo "✓ Package built successfully"
+        
+        # Verify build contents
+        ls -la dist/
+        echo "✓ Build files created"
+    
+    - name: Test built package
+      run: |
+        # Install from wheel and test
+        pip install dist/*.whl
+        python -c "
+        import title_fix
+        result = title_fix.title_fix('build test')
+        assert result['text'] == 'Build Test'
+        print('✓ Built package works correctly!')
+        "
+    
+    - name: Check package metadata
+      run: |
+        twine check dist/*
+        echo "✓ Package metadata check passed"
+    
+    - name: Deploy to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+        echo "✓ Successfully deployed to PyPI!"
+    
+    - name: Verify PyPI deployment
+      run: |
+        sleep 30  # Wait for PyPI to process
+        pip install --upgrade title-fix --index-url https://pypi.org/simple/
+        python -c "
+        import title_fix
+        result = title_fix.title_fix('pypi deployment test')
+        print(f'✓ PyPI deployment verified: {result[\"text\"]}')
+        print(f'✓ Version from PyPI: {title_fix.__version__}')
+        " 
