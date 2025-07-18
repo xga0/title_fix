@@ -7,12 +7,10 @@ from typing import Tuple, Optional, Dict, List, Set
 
 __all__ = ['title_fix', 'TitleFixer', 'get_supported_styles', 'get_supported_case_types', 'validate_input']
 
-# Case types that don't use citation styles
 CASE_TYPES = {
     "sentence", "upper", "lower", "first", "alt", "toggle"
 }
 
-# Common words that should remain lowercase in title case
 LOWERCASE_WORDS = {
     'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'if', 'in', 'nor',
     'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet', 'into', 'with',
@@ -20,36 +18,32 @@ LOWERCASE_WORDS = {
     'from', 'until', 'unless', 'upon', 'while', 'via', 'toward', 'towards'
 }
 
-# Words that should always be capitalized
 ALWAYS_CAPITALIZE = {
     'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
     'us', 'uk', 'uae', 'eu', 'un', 'nato', 'nasa', 'fbi', 'cia'
 }
 
-# Roman numerals that should be uppercase
 ROMAN_NUMERALS = {
     'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'
 }
 
-# Acronyms that should be all uppercase
 ACRONYMS = {
     'nasa', 'fbi', 'cia', 'un', 'nato', 'us', 'uk', 'uae', 'eu'
 }
 
-# Citation style rules
 CITATION_STYLES = {
     "apa": {
         "name": "APA",
         "description": "APA Style - Capitalize first word, all major words, and words with 4+ letters",
-        "min_length": 4,  # Words with 4+ letters are capitalized
+        "min_length": 4,
         "exceptions": {'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 
-                      'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'},  # Only basic articles/conjunctions/prepositions
+                      'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'},
         "always_capitalize": ALWAYS_CAPITALIZE | {'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did'}
     },
     "chicago": {
         "name": "Chicago",
         "description": "Chicago Manual of Style - Capitalize first word and all major words",
-        "min_length": 0,  # All major words are capitalized regardless of length
+        "min_length": 0,
         "exceptions": LOWERCASE_WORDS,
         "always_capitalize": ALWAYS_CAPITALIZE
     },
@@ -81,7 +75,7 @@ class TitleFixer:
         self.text = ""
         self.word_count = 0
         self.char_count = 0
-        self._style_cache = {}  # Cache for style rules
+        self._style_cache = {}
         
     def process(self, text: str, case_type: str = "title", style: str = "apa", 
                 straight_quotes: bool = False, 
@@ -102,7 +96,6 @@ class TitleFixer:
         Raises:
             ValueError: If text is not a string or case_type/style are invalid
         """
-        # Input validation
         if not isinstance(text, str):
             raise ValueError("Text must be a string")
         if not isinstance(case_type, str):
@@ -114,15 +107,12 @@ class TitleFixer:
         self.word_count = len(text.split()) if text.strip() else 0
         self.char_count = len(text)
         
-        # Normalize inputs
         case_type = case_type.lower()
         style = style.lower()
         
-        # Process based on case type
         if case_type == "title":
-            # For title case, use citation style
             if style not in CITATION_STYLES:
-                style = "apa"  # Default to APA if invalid style
+                style = "apa"
             processed = self._title_case(style)
         elif case_type == "sentence":
             processed = self._sentence_case()
@@ -137,12 +127,10 @@ class TitleFixer:
         elif case_type == "toggle":
             processed = self._toggle_case()
         else:
-            # Default to title case with APA style
             processed = self._title_case("apa")
             case_type = "title"
             style = "apa"
             
-        # Handle quotes if requested
         if straight_quotes:
             processed = self._convert_to_straight_quotes(processed)
             
@@ -159,28 +147,22 @@ class TitleFixer:
     def _should_capitalize(self, word: str, style_rules: Dict, 
                           is_first_or_last: bool = False) -> bool:
         """Determine if a word should be capitalized based on style rules."""
-        # Always capitalize first/last word
         if is_first_or_last:
             return True
             
-        # Always capitalize certain words
         if word.lower() in style_rules["always_capitalize"]:
             return True
             
-        # Always capitalize acronyms regardless of other rules (strip punctuation first)
         word_alpha = ''.join(c for c in word if c.isalpha())
         if word_alpha.lower() in ACRONYMS:
             return True
             
-        # Check exceptions first (these should NOT be capitalized)
         if word.lower() in style_rules["exceptions"]:
             return False
             
-        # Check word length rule
         if len(word) >= style_rules["min_length"]:
             return True
             
-        # For styles with min_length=0, capitalize all non-exception words
         if style_rules["min_length"] == 0:
             return True
             
@@ -192,34 +174,25 @@ class TitleFixer:
         if not words:
             return ""
             
-        # Get style rules
         style_rules = CITATION_STYLES.get(citation_style.lower(), CITATION_STYLES["apa"])
         
-        # Process each word
         result = []
         for i, word in enumerate(words):
             is_first_or_last = (i == 0 or i == len(words) - 1)
             
-            # Check if this word comes after a colon (subtitle)
             is_after_colon = i > 0 and result[i-1].endswith(':')
             should_capitalize_as_first = is_first_or_last or is_after_colon
             
-            # Handle hyphenated words
             if '-' in word:
                 parts = word.split('-')
                 processed_parts = []
                 for j, part in enumerate(parts):
                     if self._should_capitalize(part, style_rules, should_capitalize_as_first or j == 0):
-                        # Strip punctuation for checking against special word sets
                         part_alpha = ''.join(c for c in part if c.isalpha())
                         
-                        # Handle Roman numerals specially
                         if part_alpha.lower() in ROMAN_NUMERALS:
-                            # Preserve punctuation but make letters uppercase
                             processed_parts.append(''.join(c.upper() if c.isalpha() else c for c in part))
-                        # Handle acronyms specially
                         elif part_alpha.lower() in ACRONYMS:
-                            # Preserve punctuation but make letters uppercase
                             processed_parts.append(''.join(c.upper() if c.isalpha() else c for c in part))
                         else:
                             processed_parts.append(part.capitalize())
@@ -228,16 +201,11 @@ class TitleFixer:
                 result.append('-'.join(processed_parts))
             else:
                 if self._should_capitalize(word, style_rules, should_capitalize_as_first):
-                    # Strip punctuation for checking against special word sets
                     word_alpha = ''.join(c for c in word if c.isalpha())
                     
-                    # Handle Roman numerals specially
                     if word_alpha.lower() in ROMAN_NUMERALS:
-                        # Preserve punctuation but make letters uppercase
                         result.append(''.join(c.upper() if c.isalpha() else c for c in word))
-                    # Handle acronyms specially
                     elif word_alpha.lower() in ACRONYMS:
-                        # Preserve punctuation but make letters uppercase
                         result.append(''.join(c.upper() if c.isalpha() else c for c in word))
                     else:
                         result.append(word.capitalize())
@@ -251,16 +219,15 @@ class TitleFixer:
         if not self.text:
             return ""
             
-        # Split into sentences and capitalize first letter of each
         sentences = re.split(r'([.!?]+\s*)', self.text)
         result = []
         for i, part in enumerate(sentences):
-            if i % 2 == 0:  # This is a sentence
+            if i % 2 == 0:
                 if part:
                     result.append(part[0].upper() + part[1:].lower())
                 else:
                     result.append(part)
-            else:  # This is a separator
+            else:
                 result.append(part)
         return "".join(result)
         
@@ -307,7 +274,6 @@ class TitleFixer:
         score = 0
         length = len(text)
         
-        # Length factor (ideal length 40-60 chars) - optimized conditions
         if 40 <= length <= 60:
             score += 30
         elif 30 <= length <= 70:
@@ -315,7 +281,6 @@ class TitleFixer:
         elif 20 <= length <= 80:
             score += 10
             
-        # Word count factor (ideal 6-10 words) - use cached word count
         if 6 <= self.word_count <= 10:
             score += 30
         elif 4 <= self.word_count <= 12:
@@ -323,18 +288,15 @@ class TitleFixer:
         elif 3 <= self.word_count <= 15:
             score += 10
             
-        # Power words bonus - optimized with frozenset
         power_words = frozenset(['how', 'why', 'what', 'when', 'top', 'best', 'new', 'ultimate', 'complete', 'guide'])
         text_lower = text.lower()
         power_word_count = sum(1 for word in power_words if word in text_lower)
         score += min(20, power_word_count * 5)
         
-        # Numbers bonus - optimized check
         has_numbers = any(c.isdigit() for c in text)
         if has_numbers:
             score += 10
             
-        # Emotional words bonus
         emotional_words = frozenset(['amazing', 'incredible', 'shocking', 'unbelievable', 'secret', 'proven'])
         emotional_count = sum(1 for word in emotional_words if word in text_lower)
         score += min(10, emotional_count * 3)

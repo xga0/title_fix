@@ -2,7 +2,6 @@ import pytest
 from title_fix import title_fix, get_supported_styles, get_supported_case_types, validate_input, TitleFixer
 
 def test_default_style():
-    # Default should be title case with APA style
     result = title_fix("this is a test title")
     assert result["text"] == "This Is a Test Title"
     assert result["case_type"] == "TITLE"
@@ -12,27 +11,22 @@ def test_default_style():
     assert result["text"] == "The Quick Brown fox Jumps Over the Lazy Dog"
 
 def test_citation_styles():
-    # Test APA Style
     result = title_fix("the theory of relativity in physics", style="apa")
     assert result["text"] == "The Theory of Relativity in Physics"
     assert result["style"] == "APA"
     
-    # Test Chicago Style
     result = title_fix("the theory of relativity in physics", style="chicago")
     assert result["text"] == "The Theory of Relativity in Physics"
     assert result["style"] == "CHICAGO"
     
-    # Test AP Style
     result = title_fix("the theory of relativity in physics", style="ap")
     assert result["text"] == "The Theory of Relativity in Physics"
     assert result["style"] == "AP"
     
-    # Test MLA Style
     result = title_fix("the theory of relativity in physics", style="mla")
     assert result["text"] == "The Theory of Relativity in Physics"
     assert result["style"] == "MLA"
     
-    # Test NYT Style
     result = title_fix("the theory of relativity in physics", style="nyt")
     assert result["text"] == "The Theory of Relativity in Physics"
     assert result["style"] == "NYT"
@@ -163,11 +157,9 @@ def test_utility_functions():
 
 def test_input_validation():
     """Test input validation function."""
-    # Valid inputs should not raise
     validate_input("test", "title", "apa")
-    validate_input("test", "upper", "chicago")  # style ignored for non-title
+    validate_input("test", "upper", "chicago")
     
-    # Invalid inputs should raise ValueError
     with pytest.raises(ValueError, match="Text must be a string"):
         validate_input(123, "title", "apa")
     
@@ -181,44 +173,36 @@ def test_input_validation_in_process():
     """Test that process method validates inputs properly."""
     fixer = TitleFixer()
     
-    # Invalid text type
     with pytest.raises(ValueError, match="Text must be a string"):
         fixer.process(123)
     
-    # Invalid case_type type
     with pytest.raises(ValueError, match="Case type must be a string"):
         fixer.process("test", case_type=123)
     
-    # Invalid style type
     with pytest.raises(ValueError, match="Style must be a string"):
         fixer.process("test", style=123)
 
 def test_edge_cases():
     """Test various edge cases."""
-    # Empty string
     result = title_fix("")
     assert result["text"] == ""
     assert result["word_count"] == 0
     assert result["char_count"] == 0
     assert result["headline_score"] == 0
     
-    # Whitespace only - gets processed like regular text
     result = title_fix("   ")
-    assert result["text"] == ""  # Whitespace gets trimmed in processing
+    assert result["text"] == ""
     assert result["word_count"] == 0
     assert result["char_count"] == 3
     
-    # Single character
     result = title_fix("a")
     assert result["text"] == "A"
     assert result["word_count"] == 1
     assert result["char_count"] == 1
     
-    # Single word
     result = title_fix("test")
     assert result["text"] == "Test"
     
-    # Very long text
     long_text = "word " * 100
     result = title_fix(long_text.strip())
     assert result["word_count"] == 100
@@ -226,33 +210,26 @@ def test_edge_cases():
 
 def test_unicode_and_special_characters():
     """Test Unicode and special character handling."""
-    # Unicode characters
     result = title_fix("café and naïve résumé")
     assert result["text"] == "Café and Naïve Résumé"
     
-    # Emojis
     result = title_fix("hello 🌍 world")
     assert result["text"] == "Hello 🌍 World"
     
-    # Special punctuation
     result = title_fix("what's happening? here's the answer!")
     assert result["text"] == "What's Happening? Here's the Answer!"
     
-    # Various quote types - adjust expectation to actual behavior
     result = title_fix("'single' \"double\" quotes", straight_quotes=True)
-    assert result["text"] == "'single' \"double\" Quotes"  # APA rules apply
+    assert result["text"] == "'single' \"double\" Quotes"
 
 def test_numbers_and_dates():
     """Test handling of numbers and dates."""
-    # Numbers
     result = title_fix("top 10 ways to succeed in 2024")
     assert result["text"] == "Top 10 Ways to Succeed in 2024"
     
-    # Dates - fix expectation (new is 3 letters, under APA 4+ rule)
     result = title_fix("january 1st, 2024: a new beginning")
     assert result["text"] == "January 1st, 2024: A new Beginning"
     
-    # Version numbers
     result = title_fix("python 3.12 features and updates")
     assert result["text"] == "Python 3.12 Features and Updates"
 
