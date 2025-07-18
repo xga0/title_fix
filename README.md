@@ -1,5 +1,9 @@
 # Title Fix
 
+[![PyPI version](https://img.shields.io/pypi/v/title-fix.svg)](https://pypi.org/project/title-fix/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/title-fix.svg)](https://pypi.org/project/title-fix/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python package for intelligent title case conversion and text formatting. This package provides a comprehensive solution for converting text between different case styles while maintaining proper capitalization rules and offering additional text analysis features.
 
 ## Features

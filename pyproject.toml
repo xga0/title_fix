@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "title_fix"
 version = "0.0.1"
 authors = [
-  { name="Sean Gao", email="seangao@gmail.com" },
+  { name="Sean Gao", email="seangaoxy@gmail.com" },
 ]
 description = "A Python package for intelligent title case conversion and text formatting"
 readme = "README.md"
