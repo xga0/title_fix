@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: title-fix-app
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "./start.sh"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: PYTHONUNBUFFERED
+        value: true
+    healthCheckPath: /api/health 
