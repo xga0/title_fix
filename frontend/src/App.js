@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Copy, Check, Type, BarChart3, Hash, Zap } from 'lucide-react';
 import './App.css';
@@ -32,7 +32,7 @@ function App() {
     } else {
       setResult(null);
     }
-  }, [text, caseType, style, straightQuotes]);
+  }, [text, caseType, style, straightQuotes, convertText]);
 
   const fetchOptions = async () => {
     try {
@@ -43,7 +43,7 @@ function App() {
     }
   };
 
-  const convertText = async () => {
+  const convertText = useCallback(async () => {
     if (!text.trim()) return;
 
     setLoading(true);
@@ -67,7 +67,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [text, caseType, style, straightQuotes]);
 
   const copyToClipboard = async () => {
     if (result?.text) {
