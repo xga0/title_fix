@@ -28,8 +28,20 @@ function App() {
   const convertText = useCallback(async () => {
     if (!text.trim()) return;
 
+    // Prevent sending requests with invalid/empty case types
+    if (!caseType || caseType === '') {
+      console.log('Skipping conversion - no case type selected');
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('Sending conversion request:', { 
+        text_length: text.length, 
+        case_type: caseType, 
+        style: style 
+      });
+      
       const response = await axios.post('/api/convert', {
         text: text,
         case_type: caseType,
@@ -40,6 +52,9 @@ function App() {
       setResult(response.data);
     } catch (error) {
       console.error('Error converting text:', error);
+      if (error.response?.data?.detail) {
+        console.error('API Error details:', error.response.data.detail);
+      }
       setResult({
         text: 'Error converting text. Please try again.',
         word_count: 0,
