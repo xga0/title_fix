@@ -99,8 +99,8 @@ async def convert_text(request: TextConversionRequest):
 
 # Mount static files for production (React build)
 # In production, the React app will be built and served from here
-if os.path.exists("frontend/build"):
-    app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
+if os.path.exists("../frontend/build"):
+    app.mount("/static", StaticFiles(directory="../frontend/build/static"), name="static")
     
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
@@ -109,14 +109,14 @@ if os.path.exists("frontend/build"):
             raise HTTPException(status_code=404, detail="API endpoint not found")
         
         # For any other path, serve the React app
-        return FileResponse("frontend/build/index.html")
+        return FileResponse("../frontend/build/index.html")
 
 # Development route to serve a simple index page if React build doesn't exist
 @app.get("/")
 async def read_root():
     """Root endpoint - serves React app in production, dev message in development."""
-    if os.path.exists("frontend/build/index.html"):
-        return FileResponse("frontend/build/index.html")
+    if os.path.exists("../frontend/build/index.html"):
+        return FileResponse("../frontend/build/index.html")
     else:
         return {
             "message": "Title Fix API is running!", 
