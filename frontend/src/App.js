@@ -16,24 +16,6 @@ function App() {
     supported_case_types: []
   });
 
-  // Fetch supported options on component mount
-  useEffect(() => {
-    fetchOptions();
-  }, []);
-
-  // Convert text whenever input changes (with debouncing)
-  useEffect(() => {
-    if (text.trim()) {
-      const timer = setTimeout(() => {
-        convertText();
-      }, 300); // 300ms debounce
-
-      return () => clearTimeout(timer);
-    } else {
-      setResult(null);
-    }
-  }, [text, caseType, style, straightQuotes, convertText]);
-
   const fetchOptions = async () => {
     try {
       const response = await axios.get('/api/options');
@@ -68,6 +50,24 @@ function App() {
       setLoading(false);
     }
   }, [text, caseType, style, straightQuotes]);
+
+  // Fetch supported options on component mount
+  useEffect(() => {
+    fetchOptions();
+  }, []);
+
+  // Convert text whenever input changes (with debouncing)
+  useEffect(() => {
+    if (text.trim()) {
+      const timer = setTimeout(() => {
+        convertText();
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timer);
+    } else {
+      setResult(null);
+    }
+  }, [text, caseType, style, straightQuotes, convertText]);
 
   const copyToClipboard = async () => {
     if (result?.text) {
