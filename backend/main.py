@@ -78,6 +78,9 @@ async def get_options():
 async def convert_text(request: TextConversionRequest):
     """Convert text using the title_fix package."""
     try:
+        # Log the request for debugging
+        print(f"DEBUG: Converting text with case_type='{request.case_type}', style='{request.style}', text_length={len(request.text)}")
+        
         # Validate input
         validate_input(request.text, request.case_type, request.style)
         
@@ -93,8 +96,11 @@ async def convert_text(request: TextConversionRequest):
         return TextConversionResponse(**result)
         
     except ValueError as e:
+        print(f"DEBUG: Validation error - {str(e)}")
+        print(f"DEBUG: Request data - case_type='{request.case_type}', style='{request.style}'")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(f"DEBUG: Processing error - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing text: {str(e)}")
 
 # Mount static files for production (React build)
