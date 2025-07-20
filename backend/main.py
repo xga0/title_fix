@@ -51,7 +51,7 @@ class TextConversionResponse(BaseModel):
     headline_score: int
     quick_copy: bool
     case_type: str
-    style: str
+    style: Optional[str] = None
 
 class OptionsResponse(BaseModel):
     supported_styles: list[str]
