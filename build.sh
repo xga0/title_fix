@@ -17,7 +17,7 @@ pip install -e .
 # Install Node.js dependencies and build React app
 echo "Installing Node.js dependencies..."
 cd frontend
-npm ci
+npm install
 
 echo "Building React app..."
 npm run build
