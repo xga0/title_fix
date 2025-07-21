@@ -26,8 +26,19 @@ function App() {
     }
   };
 
-  const convertText = useCallback(async () => {
-    if (!text.trim()) return;
+  // Fetch supported options on component mount
+  useEffect(() => {
+    fetchOptions();
+  }, []);
+
+  // Convert text whenever input changes (with debouncing) - moved logic here to avoid circular dependency
+  useEffect(() => {
+    console.log('useEffect triggered with:', { text: text.length, caseType, style, straightQuotes });
+    
+    if (!text.trim()) {
+      setResult(null);
+      return;
+    }
 
     // Prevent sending requests with invalid/empty case types
     if (!caseType || caseType === '') {
@@ -35,68 +46,54 @@ function App() {
       return;
     }
 
-    setLoading(true);
-    setError(null); // Clear any previous errors
-    try {
-      console.log('Sending conversion request:', { 
-        text_length: text.length, 
-        case_type: caseType, 
-        style: style 
-      });
+    const timer = setTimeout(async () => {
+      console.log('About to call API...');
+      setLoading(true);
+      setError(null); // Clear any previous errors
       
-      const response = await axios.post('/api/convert', {
-        text: text,
-        case_type: caseType,
-        style: style,
-        straight_quotes: straightQuotes,
-        quick_copy: true
-      });
-      console.log('API Response:', response.data);
-      
-      // Validate response structure
-      if (response.data && typeof response.data === 'object') {
-        setResult(response.data);
-      } else {
-        throw new Error('Invalid response format');
+      try {
+        console.log('Sending conversion request:', { 
+          text_length: text.length, 
+          case_type: caseType, 
+          style: style 
+        });
+        
+        const response = await axios.post('/api/convert', {
+          text: text,
+          case_type: caseType,
+          style: style,
+          straight_quotes: straightQuotes,
+          quick_copy: true
+        });
+        console.log('API Response:', response.data);
+        
+        // Validate response structure
+        if (response.data && typeof response.data === 'object') {
+          setResult(response.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (error) {
+        console.error('Error converting text:', error);
+        setError(error.message || 'Conversion failed');
+        if (error.response?.data?.detail) {
+          console.error('API Error details:', error.response.data.detail);
+        }
+        setResult({
+          text: 'Error converting text. Please try again.',
+          word_count: 0,
+          char_count: 0,
+          headline_score: 0,
+          case_type: caseType,
+          style: caseType === 'title' ? style : null
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error converting text:', error);
-      setError(error.message || 'Conversion failed');
-      if (error.response?.data?.detail) {
-        console.error('API Error details:', error.response.data.detail);
-      }
-      setResult({
-        text: 'Error converting text. Please try again.',
-        word_count: 0,
-        char_count: 0,
-        headline_score: 0,
-        case_type: caseType,
-        style: caseType === 'title' ? style : null
-      });
-    } finally {
-      setLoading(false);
-    }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
   }, [text, caseType, style, straightQuotes]);
-
-  // Fetch supported options on component mount
-  useEffect(() => {
-    fetchOptions();
-  }, []);
-
-  // Convert text whenever input changes (with debouncing)
-  useEffect(() => {
-    console.log('useEffect triggered with:', { text: text.length, caseType, style, straightQuotes });
-    if (text.trim()) {
-      const timer = setTimeout(() => {
-        console.log('About to call convertText...');
-        convertText();
-      }, 300); // 300ms debounce
-
-      return () => clearTimeout(timer);
-    } else {
-      setResult(null);
-    }
-  }, [text, caseType, style, straightQuotes, convertText]);
 
   const copyToClipboard = async () => {
     if (result?.text) {
