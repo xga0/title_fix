@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Copy, Check, Type, BarChart3, Hash, Zap } from 'lucide-react';
 import './App.css';
