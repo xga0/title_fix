@@ -6,23 +6,29 @@ import './App.css';
 function App() {
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
-  const [caseType, setCaseType] = useState('title');
+  const [caseType, setCaseType] = useState('sentence'); // Start with sentence to avoid title case issues on load
   const [style, setStyle] = useState('apa');
   const [straightQuotes, setStraightQuotes] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
   const [options, setOptions] = useState({
-    supported_styles: [],
-    supported_case_types: []
+    supported_styles: ['apa', 'chicago', 'ap', 'mla', 'nyt'], // Provide defaults
+    supported_case_types: ['title', 'sentence', 'upper', 'lower', 'first', 'alt', 'toggle']
   });
 
   const fetchOptions = async () => {
     try {
+      console.log('Fetching options...');
       const response = await axios.get('/api/options');
+      console.log('Options received:', response.data);
       setOptions(response.data);
+      setOptionsLoaded(true);
     } catch (error) {
       console.error('Error fetching options:', error);
+      // Keep default options if fetch fails
+      setOptionsLoaded(true);
     }
   };
 
@@ -156,7 +162,18 @@ function App() {
     );
   }
 
-  console.log('App rendering with state:', { caseType, style, optionsLoaded: !!options.supported_case_types.length });
+  console.log('App rendering with state:', { caseType, style, optionsLoaded, optionsLength: options.supported_case_types?.length });
+
+  // Don't render until options are loaded to prevent crashes
+  if (!optionsLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   try {
     return (
@@ -197,36 +214,64 @@ function App() {
               <select
                 value={caseType}
                 onChange={(e) => {
-                  console.log('Case type changing from', caseType, 'to', e.target.value);
-                  setCaseType(e.target.value);
+                  try {
+                    console.log('Case type changing from', caseType, 'to', e.target.value);
+                    const newCaseType = e.target.value;
+                    
+                    // If switching to title case, ensure we have a valid style
+                    if (newCaseType === 'title' && !options.supported_styles.includes(style)) {
+                      console.log('Resetting style to first available:', options.supported_styles[0]);
+                      setStyle(options.supported_styles[0] || 'apa');
+                    }
+                    
+                    setCaseType(newCaseType);
+                    console.log('Case type changed successfully to:', newCaseType);
+                  } catch (err) {
+                    console.error('Error changing case type:', err);
+                    setError('Error changing case type: ' + err.message);
+                  }
                 }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                {(options.supported_case_types || []).map((type) => (
-                  <option key={type} value={type}>
-                    {getCaseTypeDisplayName(type)}
-                  </option>
-                ))}
+                {options.supported_case_types.map((type) => {
+                  try {
+                    return (
+                      <option key={type} value={type}>
+                        {getCaseTypeDisplayName(type)}
+                      </option>
+                    );
+                  } catch (err) {
+                    console.error('Error rendering case type option:', type, err);
+                    return null;
+                  }
+                })}
               </select>
             </div>
 
             {/* Style (only for title case) */}
-            {caseType === 'title' && (
+            {caseType === 'title' && optionsLoaded && options.supported_styles && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Citation Style</label>
                 <select
-                  value={style}
+                  value={options.supported_styles.includes(style) ? style : options.supported_styles[0] || 'apa'}
                   onChange={(e) => {
                     console.log('Style changing from', style, 'to', e.target.value);
                     setStyle(e.target.value);
                   }}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  {(options.supported_styles || []).map((styleOption) => (
-                    <option key={styleOption} value={styleOption}>
-                      {getStyleDisplayName(styleOption)}
-                    </option>
-                  ))}
+                  {options.supported_styles.map((styleOption) => {
+                    try {
+                      return (
+                        <option key={styleOption} value={styleOption}>
+                          {getStyleDisplayName(styleOption)}
+                        </option>
+                      );
+                    } catch (err) {
+                      console.error('Error rendering style option:', styleOption, err);
+                      return null;
+                    }
+                  })}
                 </select>
               </div>
             )}
