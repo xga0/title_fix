@@ -85,8 +85,10 @@ function App() {
 
   // Convert text whenever input changes (with debouncing)
   useEffect(() => {
+    console.log('useEffect triggered with:', { text: text.length, caseType, style, straightQuotes });
     if (text.trim()) {
       const timer = setTimeout(() => {
+        console.log('About to call convertText...');
         convertText();
       }, 300); // 300ms debounce
 
@@ -122,6 +124,7 @@ function App() {
   };
 
   const getStyleDisplayName = (styleCode) => {
+    if (!styleCode) return 'Unknown Style';
     const names = {
       apa: 'APA Style',
       chicago: 'Chicago Style',
@@ -155,6 +158,8 @@ function App() {
       </div>
     );
   }
+
+  console.log('App rendering with state:', { caseType, style, optionsLoaded: !!options.supported_case_types.length });
 
   try {
     return (
@@ -194,10 +199,13 @@ function App() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Case Type</label>
               <select
                 value={caseType}
-                onChange={(e) => setCaseType(e.target.value)}
+                onChange={(e) => {
+                  console.log('Case type changing from', caseType, 'to', e.target.value);
+                  setCaseType(e.target.value);
+                }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                {options.supported_case_types.map((type) => (
+                {(options.supported_case_types || []).map((type) => (
                   <option key={type} value={type}>
                     {getCaseTypeDisplayName(type)}
                   </option>
@@ -211,10 +219,13 @@ function App() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Citation Style</label>
                 <select
                   value={style}
-                  onChange={(e) => setStyle(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Style changing from', style, 'to', e.target.value);
+                    setStyle(e.target.value);
+                  }}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  {options.supported_styles.map((styleOption) => (
+                  {(options.supported_styles || []).map((styleOption) => (
                     <option key={styleOption} value={styleOption}>
                       {getStyleDisplayName(styleOption)}
                     </option>
