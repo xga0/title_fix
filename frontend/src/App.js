@@ -73,9 +73,15 @@ function App() {
         });
         console.log('API Response:', response.data);
         
-        // Validate response structure
+        // Validate response structure and clean up data
         if (response.data && typeof response.data === 'object') {
-          setResult(response.data);
+          const cleanedResult = {
+            ...response.data,
+            style: response.data.style || (caseType === 'title' ? style : null),
+            case_type: response.data.case_type || caseType
+          };
+          console.log('Setting cleaned result:', cleanedResult);
+          setResult(cleanedResult);
         } else {
           throw new Error('Invalid response format');
         }
@@ -114,6 +120,10 @@ function App() {
   };
 
   const getCaseTypeDisplayName = (type) => {
+    // Handle all falsy values (null, undefined, empty string)
+    if (!type || type === null || type === undefined) {
+      return 'Unknown Case';
+    }
     const names = {
       title: 'Title Case',
       sentence: 'Sentence case',
@@ -123,11 +133,14 @@ function App() {
       alt: 'AlTeRnAtInG cAsE',
       toggle: 'tOGGLE cAsE'
     };
-    return names[type] || type;
+    return names[type] || String(type);
   };
 
   const getStyleDisplayName = (styleCode) => {
-    if (!styleCode) return 'Unknown Style';
+    // Handle all falsy values (null, undefined, empty string)
+    if (!styleCode || styleCode === null || styleCode === undefined) {
+      return 'Unknown Style';
+    }
     const names = {
       apa: 'APA Style',
       chicago: 'Chicago Style',
@@ -135,7 +148,7 @@ function App() {
       mla: 'MLA Style',
       nyt: 'NYT Style'
     };
-    return names[styleCode] || styleCode.toUpperCase();
+    return names[styleCode] || String(styleCode).toUpperCase();
   };
 
   const getScoreColor = (score) => {
@@ -353,7 +366,20 @@ function App() {
                     <Zap className="h-5 w-5 text-orange-600 mx-auto mb-1" />
                     <p className="text-sm text-gray-600">Style</p>
                     <p className="text-sm font-bold text-orange-600">
-                      {caseType === 'title' ? getStyleDisplayName(result.style || style) : getCaseTypeDisplayName(result.case_type || caseType)}
+                      {(() => {
+                        try {
+                          if (caseType === 'title') {
+                            const styleToDisplay = result?.style || style || 'apa';
+                            return getStyleDisplayName(styleToDisplay);
+                          } else {
+                            const caseToDisplay = result?.case_type || caseType || 'sentence';
+                            return getCaseTypeDisplayName(caseToDisplay);
+                          }
+                        } catch (err) {
+                          console.error('Error displaying style/case:', err);
+                          return 'Display Error';
+                        }
+                      })()}
                     </p>
                   </div>
                 </div>
