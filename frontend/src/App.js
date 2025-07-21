@@ -11,6 +11,7 @@ function App() {
   const [straightQuotes, setStraightQuotes] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState(null);
   const [options, setOptions] = useState({
     supported_styles: [],
     supported_case_types: []
@@ -35,6 +36,7 @@ function App() {
     }
 
     setLoading(true);
+    setError(null); // Clear any previous errors
     try {
       console.log('Sending conversion request:', { 
         text_length: text.length, 
@@ -49,9 +51,17 @@ function App() {
         straight_quotes: straightQuotes,
         quick_copy: true
       });
-      setResult(response.data);
+      console.log('API Response:', response.data);
+      
+      // Validate response structure
+      if (response.data && typeof response.data === 'object') {
+        setResult(response.data);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
       console.error('Error converting text:', error);
+      setError(error.message || 'Conversion failed');
       if (error.response?.data?.detail) {
         console.error('API Error details:', error.response.data.detail);
       }
@@ -59,7 +69,9 @@ function App() {
         text: 'Error converting text. Please try again.',
         word_count: 0,
         char_count: 0,
-        headline_score: 0
+        headline_score: 0,
+        case_type: caseType,
+        style: caseType === 'title' ? style : null
       });
     } finally {
       setLoading(false);
@@ -126,8 +138,27 @@ function App() {
     return 'text-red-600';
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  // Error boundary fallback
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-6 max-w-md">
+          <h2 className="text-lg font-semibold text-red-600 mb-2">Application Error</h2>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <button 
+            onClick={() => {setError(null); window.location.reload();}} 
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload App
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  try {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -269,7 +300,7 @@ function App() {
                     <Zap className="h-5 w-5 text-orange-600 mx-auto mb-1" />
                     <p className="text-sm text-gray-600">Style</p>
                     <p className="text-sm font-bold text-orange-600">
-                      {caseType === 'title' ? getStyleDisplayName(result.style) : getCaseTypeDisplayName(result.case_type)}
+                      {caseType === 'title' ? getStyleDisplayName(result.style || style) : getCaseTypeDisplayName(result.case_type || caseType)}
                     </p>
                   </div>
                 </div>
@@ -316,6 +347,23 @@ function App() {
       </footer>
     </div>
   );
+  } catch (renderError) {
+    console.error('React render error:', renderError);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-6 max-w-md">
+          <h2 className="text-lg font-semibold text-red-600 mb-2">Render Error</h2>
+          <p className="text-gray-700 mb-4">Something went wrong. Please refresh the page.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
 
 export default App; 
