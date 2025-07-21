@@ -6,7 +6,7 @@ import './App.css';
 function App() {
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
-  const [caseType, setCaseType] = useState('sentence'); // Start with sentence to avoid title case issues on load
+  const [caseType, setCaseType] = useState('title'); // Fixed root cause, safe to start with title case
   const [style, setStyle] = useState('apa');
   const [straightQuotes, setStraightQuotes] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,9 +20,7 @@ function App() {
 
   const fetchOptions = async () => {
     try {
-      console.log('Fetching options...');
       const response = await axios.get('/api/options');
-      console.log('Options received:', response.data);
       setOptions(response.data);
       setOptionsLoaded(true);
     } catch (error) {
@@ -32,80 +30,76 @@ function App() {
     }
   };
 
+  // Conversion function - no useCallback to avoid circular dependencies
+  const convertText = async (textToConvert, caseTypeToUse, styleToUse, straightQuotesToUse) => {
+    if (!textToConvert.trim()) return;
+
+    // Prevent sending requests with invalid/empty case types
+    if (!caseTypeToUse || caseTypeToUse === '') {
+      console.log('Skipping conversion - no case type selected');
+      return;
+    }
+
+    setLoading(true);
+    setError(null); // Clear any previous errors
+    
+    try {
+      const response = await axios.post('/api/convert', {
+        text: textToConvert,
+        case_type: caseTypeToUse,
+        style: styleToUse,
+        straight_quotes: straightQuotesToUse,
+        quick_copy: true
+      });
+      
+      // Validate response structure and clean up data
+      if (response.data && typeof response.data === 'object') {
+        const cleanedResult = {
+          ...response.data,
+          style: response.data.style || (caseTypeToUse === 'title' ? styleToUse : null),
+          case_type: response.data.case_type || caseTypeToUse
+        };
+        setResult(cleanedResult);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error converting text:', error);
+      setError(error.message || 'Conversion failed');
+      if (error.response?.data?.detail) {
+        console.error('API Error details:', error.response.data.detail);
+      }
+      setResult({
+        text: 'Error converting text. Please try again.',
+        word_count: 0,
+        char_count: 0,
+        headline_score: 0,
+        case_type: caseTypeToUse,
+        style: caseTypeToUse === 'title' ? styleToUse : null
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch supported options on component mount
   useEffect(() => {
     fetchOptions();
   }, []);
 
-  // Convert text whenever input changes (with debouncing) - moved logic here to avoid circular dependency
+  // Convert text whenever input changes (with debouncing) - clean separation of concerns
   useEffect(() => {
-    console.log('useEffect triggered with:', { text: text.length, caseType, style, straightQuotes });
-    
     if (!text.trim()) {
       setResult(null);
       return;
     }
 
-    // Prevent sending requests with invalid/empty case types
-    if (!caseType || caseType === '') {
-      console.log('Skipping conversion - no case type selected');
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      console.log('About to call API...');
-      setLoading(true);
-      setError(null); // Clear any previous errors
-      
-      try {
-        console.log('Sending conversion request:', { 
-          text_length: text.length, 
-          case_type: caseType, 
-          style: style 
-        });
-        
-        const response = await axios.post('/api/convert', {
-          text: text,
-          case_type: caseType,
-          style: style,
-          straight_quotes: straightQuotes,
-          quick_copy: true
-        });
-        console.log('API Response:', response.data);
-        
-        // Validate response structure and clean up data
-        if (response.data && typeof response.data === 'object') {
-          const cleanedResult = {
-            ...response.data,
-            style: response.data.style || (caseType === 'title' ? style : null),
-            case_type: response.data.case_type || caseType
-          };
-          console.log('Setting cleaned result:', cleanedResult);
-          setResult(cleanedResult);
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (error) {
-        console.error('Error converting text:', error);
-        setError(error.message || 'Conversion failed');
-        if (error.response?.data?.detail) {
-          console.error('API Error details:', error.response.data.detail);
-        }
-        setResult({
-          text: 'Error converting text. Please try again.',
-          word_count: 0,
-          char_count: 0,
-          headline_score: 0,
-          case_type: caseType,
-          style: caseType === 'title' ? style : null
-        });
-      } finally {
-        setLoading(false);
-      }
+    const timer = setTimeout(() => {
+      convertText(text, caseType, style, straightQuotes);
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [text, caseType, style, straightQuotes]);
+  }, [text, caseType, style, straightQuotes]); // Clean dependencies, no function references
 
   const copyToClipboard = async () => {
     if (result?.text) {
@@ -175,8 +169,6 @@ function App() {
     );
   }
 
-  console.log('App rendering with state:', { caseType, style, optionsLoaded, optionsLength: options.supported_case_types?.length });
-
   // Don't render until options are loaded to prevent crashes
   if (!optionsLoaded) {
     return (
@@ -228,17 +220,14 @@ function App() {
                 value={caseType}
                 onChange={(e) => {
                   try {
-                    console.log('Case type changing from', caseType, 'to', e.target.value);
                     const newCaseType = e.target.value;
                     
                     // If switching to title case, ensure we have a valid style
                     if (newCaseType === 'title' && !options.supported_styles.includes(style)) {
-                      console.log('Resetting style to first available:', options.supported_styles[0]);
                       setStyle(options.supported_styles[0] || 'apa');
                     }
                     
                     setCaseType(newCaseType);
-                    console.log('Case type changed successfully to:', newCaseType);
                   } catch (err) {
                     console.error('Error changing case type:', err);
                     setError('Error changing case type: ' + err.message);
@@ -267,10 +256,7 @@ function App() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Citation Style</label>
                 <select
                   value={options.supported_styles.includes(style) ? style : options.supported_styles[0] || 'apa'}
-                  onChange={(e) => {
-                    console.log('Style changing from', style, 'to', e.target.value);
-                    setStyle(e.target.value);
-                  }}
+                  onChange={(e) => setStyle(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {options.supported_styles.map((styleOption) => {
