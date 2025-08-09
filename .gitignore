@@ -121,4 +121,8 @@ frontend/.env.test.local
 frontend/.env.production.local
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
-frontend/yarn-error.log* 
+frontend/yarn-error.log*
+
+# Ignore documentation files
+DEPLOYMENT.md
+PROJECT_README.md 
