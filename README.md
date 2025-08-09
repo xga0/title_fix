@@ -6,6 +6,17 @@
 
 A Python package for intelligent title case conversion and text formatting. This package provides a comprehensive solution for converting text between different case styles while maintaining proper capitalization rules and offering additional text analysis features.
 
+## 🌐 Live Demo
+
+Try the web interface powered by this package: **[https://title-fix-app.onrender.com/](https://title-fix-app.onrender.com/)**
+
+Experience all the features through a modern, responsive web application built with React and FastAPI. The web app provides:
+- Real-time text conversion as you type
+- All citation styles and case types
+- Copy-to-clipboard functionality  
+- Text statistics and headline scoring
+- Beautiful, user-friendly interface
+
 ## Features
 
 - Multiple case conversion options:
