@@ -36,6 +36,8 @@ Experience all the features through a modern, responsive web application built w
   - NYT (New York Times)
 
 - Additional features:
+  - **Custom acronyms** - Add your own acronyms (API, SDK, REST, etc.)
+  - **Preserve uppercase** - Keep words that are already fully uppercase
   - Word and character count
   - Straight quotes conversion
   - Quick copy functionality
@@ -155,6 +157,50 @@ result = title_fix("main title: a subtitle here")
 print(result["text"])  # Output: "Main Title: A Subtitle Here"
 ```
 
+### Custom Acronyms
+
+You can now provide your own acronyms to be capitalized:
+
+```python
+# Add custom acronyms like API, SDK, REST, etc.
+result = title_fix("the api and sdk documentation", acronyms=["api", "sdk"])
+print(result["text"])  # Output: "The API and SDK Documentation"
+
+# Works with default acronyms too
+result = title_fix("nasa api and fbi database", acronyms=["api", "database"])
+print(result["text"])  # Output: "NASA API and FBI DATABASE"
+
+# Handles acronyms with numbers
+result = title_fix("using oauth2 authentication", acronyms=["oauth2"])
+print(result["text"])  # Output: "Using OAUTH2 Authentication"
+
+# Works with hyphenated acronyms
+result = title_fix("jwt-based authentication", acronyms=["jwt"])
+print(result["text"])  # Output: "JWT-Based Authentication"
+```
+
+### Preserve Uppercase Words
+
+Keep words that are already fully uppercase in your input:
+
+```python
+# Preserve all-uppercase words from the input
+result = title_fix("REST API with GRAPHQL backend", preserve_uppercase=True)
+print(result["text"])  # Output: "REST API With GRAPHQL Backend"
+
+# Works with mixed content
+result = title_fix("Using JWT tokens with OAUTH2", preserve_uppercase=True)
+print(result["text"])  # Output: "Using JWT Tokens With OAUTH2"
+
+# Combine with custom acronyms for maximum flexibility
+result = title_fix(
+    "REST api and SDK integration",
+    acronyms=["api", "sdk"],
+    preserve_uppercase=True
+)
+print(result["text"])  # Output: "REST API and SDK Integration"
+```
+
 ## Citation Style Rules
 
 Each citation style follows specific rules for capitalization:
@@ -222,7 +268,8 @@ except ValueError as e:
 ### Main Function
 
 ```python
-title_fix(text, case_type="title", style="apa", straight_quotes=False, quick_copy=True)
+title_fix(text, case_type="title", style="apa", straight_quotes=False, quick_copy=True, 
+          acronyms=None, preserve_uppercase=False)
 ```
 
 **Parameters:**
@@ -231,6 +278,8 @@ title_fix(text, case_type="title", style="apa", straight_quotes=False, quick_cop
 - `style` (str): Citation style for title case - "apa", "chicago", "ap", "mla", "nyt"
 - `straight_quotes` (bool): Convert curly quotes to straight quotes
 - `quick_copy` (bool): Enable quick copy functionality
+- `acronyms` (Iterable[str], optional): Custom acronyms to capitalize (e.g., ["api", "sdk", "rest"])
+- `preserve_uppercase` (bool): Keep words that are already fully uppercase in the input
 
 **Returns:**
 - Dictionary with keys: `text`, `word_count`, `char_count`, `headline_score`, `quick_copy`, `case_type`, `style`

@@ -1,13 +1,11 @@
 """
-Constants and configuration data for title_fix package - Performance optimized.
+Constants and configuration data for title_fix package.
 """
 
-# Use frozensets for O(1) lookups instead of sets/lists
 CASE_TYPES = frozenset({
     "title", "sentence", "upper", "lower", "first", "alt", "toggle"
 })
 
-# Precompute all lowercase words as frozenset for fast lookups
 LOWERCASE_WORDS = frozenset({
     'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'if', 'in', 'nor',
     'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet', 'into', 'with',
@@ -15,23 +13,19 @@ LOWERCASE_WORDS = frozenset({
     'from', 'until', 'unless', 'upon', 'while', 'via', 'toward', 'towards'
 })
 
-# Optimized with frozenset for fast membership testing
 ALWAYS_CAPITALIZE = frozenset({
     'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
     'us', 'uk', 'uae', 'eu', 'un', 'nato', 'nasa', 'fbi', 'cia'
 })
 
-# Roman numerals as frozenset for performance
 ROMAN_NUMERALS = frozenset({
     'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'
 })
 
-# Acronyms as frozenset for performance
 ACRONYMS = frozenset({
     'nasa', 'fbi', 'cia', 'un', 'nato', 'us', 'uk', 'uae', 'eu'
 })
 
-# Optimized citation styles with precomputed frozensets for faster lookups
 CITATION_STYLES = {
     "apa": {
         "name": "APA",
@@ -71,5 +65,4 @@ CITATION_STYLES = {
     }
 }
 
-# Precompute style keys as tuple for faster iterations
 CITATION_STYLE_KEYS = tuple(CITATION_STYLES.keys()) 

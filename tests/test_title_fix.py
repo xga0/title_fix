@@ -450,4 +450,169 @@ def test_metadata_accuracy():
     assert 0 <= result["headline_score"] <= 100
     
     # Quick copy should default to True
-    assert result["quick_copy"] is True 
+    assert result["quick_copy"] is True
+
+
+def test_custom_acronyms():
+    """Test custom acronyms functionality."""
+    # Test with custom acronyms
+    result = title_fix("the api and sdk documentation", acronyms=["api", "sdk"])
+    assert result["text"] == "The API and SDK Documentation"
+    
+    # Test with mixed case custom acronyms (should normalize to lowercase internally)
+    # Note: "with" is 4 letters and gets capitalized in APA style
+    result = title_fix("using rest api with graphql", acronyms=["REST", "API", "GraphQL"])
+    assert result["text"] == "Using REST API With GRAPHQL"
+    
+    # Test custom acronyms with default acronyms still working
+    result = title_fix("nasa api and fbi database", acronyms=["api", "database"])
+    assert result["text"] == "NASA API and FBI DATABASE"
+    
+    # Test with hyphenated custom acronyms
+    result = title_fix("jwt-based authentication system", acronyms=["jwt"])
+    assert result["text"] == "JWT-Based Authentication System"
+    
+    # Test custom acronyms with punctuation
+    result = title_fix("use the api, not the sdk", acronyms=["api", "sdk"])
+    assert result["text"] == "Use the API, not the SDK"
+    
+    # Test empty acronyms list
+    result = title_fix("the api documentation", acronyms=[])
+    assert result["text"] == "The api Documentation"
+    
+    # Test None acronyms (default behavior)
+    result = title_fix("nasa and fbi", acronyms=None)
+    assert result["text"] == "NASA and FBI"
+
+
+def test_preserve_uppercase():
+    """Test preserve_uppercase functionality."""
+    # Test basic preserve_uppercase - note "GraphQL" is mixed case so won't be preserved, only REST and API
+    result = title_fix("REST API with GRAPHQL backend", preserve_uppercase=True)
+    assert result["text"] == "REST API With GRAPHQL Backend"
+    
+    # Test that preserve_uppercase doesn't affect normally cased words
+    result = title_fix("The quick BROWN fox", preserve_uppercase=True)
+    assert result["text"] == "The Quick BROWN Fox"
+    
+    # Test preserve_uppercase with multiple uppercase words
+    result = title_fix("Using JWT tokens with OAUTH2 and SAML", preserve_uppercase=True)
+    assert result["text"] == "Using JWT Tokens With OAUTH2 and SAML"
+    
+    # Test that preserve_uppercase=False works as normal (default behavior)
+    result = title_fix("REST API with GRAPHQL backend", preserve_uppercase=False)
+    assert result["text"] == "Rest api With Graphql Backend"
+    
+    # Test preserve_uppercase with lowercase words (should not affect)
+    result = title_fix("the quick brown fox", preserve_uppercase=True)
+    assert result["text"] == "The Quick Brown Fox"
+    
+    # Test preserve_uppercase with hyphenated uppercase words
+    result = title_fix("REST-API architecture", preserve_uppercase=True)
+    # REST-API is treated as one word with hyphen, so REST and API parts should both be uppercase
+    assert "REST" in result["text"]
+
+
+def test_custom_acronyms_and_preserve_uppercase_combined():
+    """Test both custom acronyms and preserve_uppercase together."""
+    # Test combining both features
+    # Note: "with" is 4 letters and gets capitalized in APA style
+    result = title_fix(
+        "using JWT tokens with OAUTH2 and api gateway",
+        acronyms=["api", "gateway"],
+        preserve_uppercase=True
+    )
+    assert result["text"] == "Using JWT Tokens With OAUTH2 and API GATEWAY"
+    
+    # Test that custom acronyms override preserve_uppercase for non-uppercase words
+    result = title_fix(
+        "use the api and sdk here",
+        acronyms=["api", "sdk"],
+        preserve_uppercase=True
+    )
+    assert result["text"] == "Use the API and SDK Here"
+    
+    # Test with mixed scenarios
+    result = title_fix(
+        "REST api vs GRAPHQL query language",
+        acronyms=["api", "query"],
+        preserve_uppercase=True
+    )
+    assert "REST" in result["text"]
+    assert "GRAPHQL" in result["text"]
+
+
+def test_custom_acronyms_with_different_styles():
+    """Test custom acronyms work with different citation styles."""
+    # Test with APA style
+    result = title_fix("the api guide", style="apa", acronyms=["api"])
+    assert result["text"] == "The API Guide"
+    
+    # Test with Chicago style
+    result = title_fix("the api guide", style="chicago", acronyms=["api"])
+    assert result["text"] == "The API Guide"
+    
+    # Test with NYT style
+    result = title_fix("the api guide", style="nyt", acronyms=["api"])
+    assert result["text"] == "The API Guide"
+
+
+def test_custom_acronyms_edge_cases():
+    """Test edge cases for custom acronyms."""
+    # Test with numbers in acronyms
+    result = title_fix("using oauth2 authentication", acronyms=["oauth2"])
+    assert result["text"] == "Using OAUTH2 Authentication"
+    
+    # Test with single letter acronyms
+    # Note: "that" is 4 letters and gets capitalized in APA style
+    result = title_fix("i know that a b c are letters", acronyms=["a", "b", "c"])
+    assert result["text"] == "I Know That A B C Are Letters"
+    
+    # Test with very long acronym
+    result = title_fix("the supercalifragilisticexpialidocious word", acronyms=["supercalifragilisticexpialidocious"])
+    assert result["text"] == "The SUPERCALIFRAGILISTICEXPIALIDOCIOUS Word"
+    
+    # Test with non-string items in acronyms list (should be filtered out)
+    result = title_fix("the api test", acronyms=["api", 123, None, "sdk"])
+    assert result["text"] == "The API Test"
+
+
+def test_preserve_uppercase_edge_cases():
+    """Test edge cases for preserve_uppercase."""
+    # Test with all uppercase input
+    result = title_fix("ALL UPPERCASE TEXT", preserve_uppercase=True)
+    assert result["text"] == "ALL UPPERCASE TEXT"
+    
+    # Test with no uppercase words
+    result = title_fix("all lowercase text", preserve_uppercase=True)
+    assert result["text"] == "All Lowercase Text"
+    
+    # Test with mixed case words (CamelCase should not be preserved)
+    result = title_fix("CamelCase words here", preserve_uppercase=True)
+    assert result["text"] == "Camelcase Words Here"
+    
+    # Test with acronyms containing punctuation
+    result = title_fix("U.S.A. and U.K. relations", preserve_uppercase=False)
+    # U.S.A. has punctuation so it's not detected as fully uppercase
+    assert "U.s.a." in result["text"] or "U.S.A." in result["text"]
+
+
+def test_class_instance_with_custom_params():
+    """Test that TitleFixer class can be reused with custom parameters."""
+    fixer = TitleFixer()
+    
+    # First call with custom acronyms
+    result1 = fixer.process("the api test", acronyms=["api"])
+    assert result1["text"] == "The API Test"
+    
+    # Second call without custom acronyms
+    result2 = fixer.process("the api test")
+    assert result2["text"] == "The api Test"
+    
+    # Third call with preserve_uppercase
+    result3 = fixer.process("REST API test", preserve_uppercase=True)
+    assert result3["text"] == "REST API Test"
+    
+    # Fourth call with both
+    result4 = fixer.process("REST api and SDK", acronyms=["api", "sdk"], preserve_uppercase=True)
+    assert result4["text"] == "REST API and SDK" 

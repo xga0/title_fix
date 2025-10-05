@@ -11,14 +11,12 @@ from typing import Optional
 import os
 import sys
 
-# Add the project root to Python path so we can import title_fix
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from title_fix import title_fix, get_supported_styles, get_supported_case_types, validate_input
 except ImportError as e:
     print(f"Error importing title_fix: {e}")
-    print("Make sure the title_fix package is installed or available in the Python path")
     raise
 
 app = FastAPI(
@@ -27,16 +25,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Pydantic models for request/response
 class TextConversionRequest(BaseModel):
     text: str
     case_type: str = "title"
@@ -57,7 +52,7 @@ class OptionsResponse(BaseModel):
     supported_styles: list[str]
     supported_case_types: list[str]
 
-# API Routes
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
@@ -97,8 +92,7 @@ async def convert_text(request: TextConversionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing text: {str(e)}")
 
-# Mount static files for production (React build)
-# In production, the React app will be built and served from here
+
 if os.path.exists("../frontend/build"):
     app.mount("/static", StaticFiles(directory="../frontend/build/static"), name="static")
     
@@ -108,13 +102,12 @@ if os.path.exists("../frontend/build"):
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API endpoint not found")
         
-        # For any other path, serve the React app
         return FileResponse("../frontend/build/index.html")
 
-# Development route to serve a simple index page if React build doesn't exist
+
 @app.get("/")
 async def read_root():
-    """Root endpoint - serves React app in production, dev message in development."""
+    """Root endpoint."""
     if os.path.exists("../frontend/build/index.html"):
         return FileResponse("../frontend/build/index.html")
     else:
